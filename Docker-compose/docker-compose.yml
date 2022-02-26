@@ -1,0 +1,86 @@
+version: '2'
+services: 
+    prometheus:
+        image: prom/prometheus
+        ports:
+            - '9090:9090'
+        container_name: prometheus
+        volumes:
+            - ..\prometheus\prometheus.yml:/etc/prometheus/prometheus.yml
+            
+    grafana:
+        image: grafana/grafana
+        expose:
+            - '3000'
+        ports:
+            - '3000:3000'
+        container_name: grafana
+        depends_on:
+            - prometheus
+        volumes:
+            - ..\grafana\grafana.ini:/etc/grafana/grafana.ini
+            
+    elasticsearch:
+        image: elasticsearch:7.9.2
+        ports:
+            - '9200:9200'
+        environment:
+            - discovery.type=single-node
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
+
+    kibana:
+        image: kibana:7.9.2
+        ports:
+            - '5601:5601'
+
+    logstash:
+        image: logstash:7.9.2
+        ports:
+            - '5000:5000'
+        volumes:
+            - ..\logstash\ports.conf:/etc/logstash/ports.conf
+
+    jaeger:
+        container_name: jaeger
+        image: jaegertracing/all-in-one:latest
+        ports:
+            - 16686:16686
+            - 14269:14269
+            
+    apm-server:
+        container_name: apm-server
+        image: elastic/apm-server:7.9.3
+        ports:
+            - 8200:8200
+
+    mongodb:
+        image: "mongo:latest"
+        expose: 
+            - "27017"
+        ports:
+            - 27017:27017
+        volumes:
+            - .\MongoDB\volume:/data/db
+            
+    myredis:
+        image: "redis:latest"
+        restart: unless-stopped
+        expose:
+            - "6379"
+        ports:
+            - "6379:6379"
+        volumes:
+            - .\redis\Volume:/data
+            - .\redis\redis.conf:/usr/local/etc/redis/redis.conf
+        command: redis-server /usr/local/etc/redis/redis.conf  
+        
+    buchungsservice:
+        build: 
+            context: ../buchungsservice
+            dockerfile: Dockerfile
+        ports:
+            - 8080:8080
+
